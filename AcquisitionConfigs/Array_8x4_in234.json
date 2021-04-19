@@ -1,0 +1,111 @@
+{
+    "address": "10.101.1.199",
+    "port": 23456,
+    "raw_data": false,
+    "acquisition_config": {
+        "use_decimator": true,
+        "sampling_frequency": 2048,
+        "input_set": "i1-4_mi1-2"
+    },
+    "anout_config": {
+        "gain": 1,
+        "source": "aux_in",
+        "source_channel": 0
+    },
+    "input_configs": [
+        {
+            "hp_filter_at": 0.3,
+            "lp_filter_at": 500,
+            "derivation_mode": "differential"
+        },
+        {
+            "hp_filter_at": 0.3,
+            "lp_filter_at": 500,
+            "derivation_mode": "differential"
+        },
+        {
+            "hp_filter_at": 0.3,
+            "lp_filter_at": 500,
+            "derivation_mode": "differential"
+        },
+        {
+            "hp_filter_at": 0.3,
+            "lp_filter_at": 500,
+            "derivation_mode": "differential"
+        },
+        {
+            "hp_filter_at": 0.3,
+            "lp_filter_at": 4400,
+            "derivation_mode": "differential"
+        },
+        {
+            "hp_filter_at": 0.3,
+            "lp_filter_at": 4400,
+            "derivation_mode": "differential"
+        },
+        {
+            "hp_filter_at": 0.3,
+            "lp_filter_at": 4400,
+            "derivation_mode": "differential"
+        },
+        {
+            "hp_filter_at": 0.3,
+            "lp_filter_at": 4400,
+            "derivation_mode": "differential"
+        },
+        {
+            "hp_filter_at": 0.3,
+            "lp_filter_at": 4400,
+            "derivation_mode": "differential"
+        },
+        {
+            "hp_filter_at": 0.3,
+            "lp_filter_at": 4400,
+            "derivation_mode": "differential"
+        },
+        {
+            "hp_filter_at": 0.3,
+            "lp_filter_at": 4400,
+            "derivation_mode": "differential"
+        },
+        {
+            "hp_filter_at": 0.3,
+            "lp_filter_at": 4400,
+            "derivation_mode": "differential"
+        }
+    ],
+    "channel_set": [16,
+                    17,
+                    18,
+                    19,
+                    20,
+                    21,
+                    22,
+                    23,
+                    24,
+                    25,
+                    26,
+                    27,
+                    28,
+                    29,
+                    30,
+                    31,
+                    32,
+                    33,
+                    34,
+                    35,
+                    36,
+                    37,
+                    38,
+                    39,
+                    40,
+                    41,
+                    42,
+                    43,
+                    44,
+                    45,
+                    46,
+                    47,
+                    209],
+    "values_per_sample": 216
+}
