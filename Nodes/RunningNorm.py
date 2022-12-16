@@ -11,7 +11,7 @@ class RunningNorm(Node.Node):
     Takes a stream of frames and normalize them (per dimension) using a
     running percentile approach
     """
-    def __init__(self, channels = None, history_length = 550, max_divisor = 0.01, upper_percentile = 0.99, lower_percentile = 0.9, clip = True, update_every = 1, name = "RunningNorm"):
+    def __init__(self, channels = None, history_length = 550, max_divisor = 0.1, upper_percentile = 0.99, lower_percentile = 0.9, clip = True, update_every = 1, name = "RunningNorm"):
         """Stores parameters for the normalizing."""
         super(RunningNorm, self).__init__(name = name)
         

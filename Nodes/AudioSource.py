@@ -32,7 +32,7 @@ class AudioSource(Node.Node):
                 is_supported = p.is_format_supported(
                     input_device = device_id,
                     input_format = pyaudio.paInt16, 
-                    input_channels = 2,
+                    input_channels = 1,
                     rate = rate,
                 )
             except:
@@ -54,9 +54,9 @@ class AudioSource(Node.Node):
             info = p.get_host_api_info_by_index(j)
             numdevices = info.get('deviceCount')
             for i in range(0, numdevices):
-                if (p.get_device_info_by_host_api_device_index(j, i).get('maxInputChannels')) > 1:
+                if (p.get_device_info_by_host_api_device_index(j, i).get('maxInputChannels')) >= 1:
                     device_name = p.get_device_info_by_host_api_device_index(j, i).get('name')
-                    if self.device_name_filter in device_name:
+                    if self.device_name_filter in device_name and len(self.test_sample_rates(p, i)) != 0:
                         self.api_id = j
                         self.device_id = i
                         print("Found device with id " + str(self.api_id) + "." + str(self.device_id) + ": " + device_name)
@@ -68,7 +68,6 @@ class AudioSource(Node.Node):
                 numdevices = info.get('deviceCount')
                 for i in range(0, numdevices):
                     dev_info = p.get_device_info_by_host_api_device_index(j, i)
-                    #if (dev_info.get('maxInputChannels')) > 1:
                     device_name = dev_info.get('name')
                     supported_rates = self.test_sample_rates(p, i)
                     print("*", device_name, "channels:", dev_info.get('maxInputChannels'), "rates:", supported_rates)
@@ -77,12 +76,12 @@ class AudioSource(Node.Node):
         # Find best samplerate
         self.sample_rate = min(self.test_sample_rates(p, self.device_id))
         sample_multiplier = int(self.sample_rate / 16000)
-        resampler = samplerate.Resampler('sinc_fastest', channels = 2)
+        resampler = samplerate.Resampler('sinc_fastest', channels = 1)
         
         # Open stream
         stream = p.open(
             format = pyaudio.paInt16, 
-            channels = 2,
+            channels = 1,
             rate = self.sample_rate, 
             input = True,
             frames_per_buffer = 256,
@@ -92,7 +91,7 @@ class AudioSource(Node.Node):
         # Record
         while self.stop_process.value == False:
             data = stream.read(256, exception_on_overflow = False)
-            samples = np.frombuffer(data, dtype = 'int16').astype('float').reshape(256, 2)
+            samples = np.frombuffer(data, dtype = 'int16').astype('float').reshape(256, 1)
             samples_res = resampler.process(samples, sample_multiplier)
             self.frame_pipe_in.send(samples_res)
         p.terminate()
@@ -113,9 +112,12 @@ class AudioSource(Node.Node):
         if self.stop_process.value == True:
             self.stop_process.value = False
             self.audio_process = multiprocessing.Process(target = self.audio_runner)
-            self.processing_process = multiprocessing.Process(target = self.processing_runner)
             self.audio_process.start()
+            self.audio_process = None # weakref pickle fix for new python versions
+            self.processing_process = multiprocessing.Process(target = self.processing_runner)
             self.processing_process.start()
+            self.processing_process = None # weakref pickle fix for new python versions
+            
         super(AudioSource, self).start_processing(recurse)
         
     def stop_processing(self, recurse = True):

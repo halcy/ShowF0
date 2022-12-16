@@ -1,6 +1,5 @@
 import numpy as np
 import scipy
-import BioKIT as bk
 
 from . import Node
 from . import FrameBuffer
@@ -10,22 +9,26 @@ class F0Calculator(Node.Node):
     """
     Takes a continuous stream of data as input and outputs a spectrogram.
     """
-    def __init__(self, frame_length_ms, frame_shift_ms, sample_rate, channel = 0, f0_min = 95.0, f0_max = 300.0, harmo_thresh = 0.2, warm_start = True, name = "F0Calculator"):
+    def __init__(self, frame_length_ms, frame_shift_ms, sample_rate, channel = 0, f0_min = 95.0, f0_max = 300.0, harmo_thresh = 0.2, lp_cut = 0.8, gain = 1.0, warm_start = True, name = "F0Calculator"):
         """Initializes all the buffers used to run-on calculate F0s."""        
         self.channel = channel
         self.sr = sample_rate
         self.f0_min = f0_min
         self.f0_max = f0_max
+        self.gain = gain
         self.harmo_thresh = harmo_thresh
-        
-        # Set up subgraph
-        self.channel_sel = LambdaNode.LambdaNode(lambda x, sel_channel = self.channel: x[:,[sel_channel]],  name = name + ".ChannelSel")
-        self.audio_fb = FrameBuffer.FrameBuffer(frame_length_ms, frame_shift_ms, sample_rate, name = name + ".FrameBuffer", warm_start = warm_start)(self.channel_sel)
+
+        filtsos = scipy.signal.butter(1, lp_cut, btype='low', output="sos")
+        self.channel_sel = LambdaNode.LambdaNode(self.select_channel,  name = name + ".ChannelSel")
+        self.audio_fb = FrameBuffer.FrameBuffer(frame_length_ms, frame_shift_ms, sample_rate, name = name + ".FrameBuffer", warm_start = warm_start, filter_coefficients=filtsos)(self.channel_sel)
         self.f0_calc = LambdaNode.LambdaNode(self.frame_f0s,  name = name + ".F0Calc")(self.audio_fb)
         
         # Set up subgraph passthrough.
         self.set_passthrough(self.channel_sel, self.f0_calc)
-        
+
+    def select_channel(self, x):
+        return x[:,[self.channel]]
+
     def frame_f0s(self, frame):
         """
         Extract frame pitch using the YIN algorithm. Based on an implementation by
@@ -34,7 +37,7 @@ class F0Calculator(Node.Node):
         Make sure that the passed number of samples is large enough for the desired
         f0_max and also a power of two.
         """
-        frame = frame.flatten()
+        frame = frame.flatten().astype(np.float32) * self.gain
         w = frame.size
         
         tau_min = int(self.sr / self.f0_max)

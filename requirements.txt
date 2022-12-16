@@ -1,0 +1,6 @@
+pyqt5
+samplerate
+pyaudio
+scipy
+pyqtgraph
+numpy
