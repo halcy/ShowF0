@@ -61,7 +61,8 @@ class AudioSource(Node.Node):
                         self.api_id = j
                         self.device_id = i
                         print("Found device with id " + str(self.api_id) + "." + str(self.device_id) + ": " + device_name)
-                        
+                        break
+                    
         if self.device_id is None:
             print("No devices found that match filter. Device list:")
             for j in range(0, num_apis):

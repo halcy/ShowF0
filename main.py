@@ -1,12 +1,11 @@
-from Nodes import F0Calculator, AudioSource, Receiver, RunningNorm, PyAudioSink
-import pyaudio
+from Nodes import F0Calculator, RTMixerAudioSource, RTMixerAudioSink, AudioSource, Receiver, RunningNorm, PyAudioSink
 import numpy as np
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import QTimer
 from PlotWindow import PlotWindow
 
 # recording - device name
-DEVICE = "Microphone Array"
+DEVICE = "C510"
 
 # display 
 ROLL_LEN = 1000 # how many data points (10ms each) to show
@@ -20,16 +19,18 @@ LP_CUTOFF_NORMALIZED = 0.9 # cutoff (0 to 1) for lowpass filter ran before extra
 PRE_GAIN_LINEAR = 10.0 # how much (constant, linear) gain to apply. 
 
 if __name__ == '__main__':
-    p = pyaudio.PyAudio()
-    for i in range(p.get_device_count()):
-        print(p.get_device_info_by_index(i)["name"])
+    #p = pyaudio.PyAudio()
+    #for i in range(p.get_device_count()):
+    #    print(p.get_device_info_by_index(i)["name"])
         
     window = None
-    source = AudioSource.AudioSource(device_name_filter = DEVICE, block_size = 64, name = "AudioSource")
+    source = RTMixerAudioSource.RTMixerAudioSource(device_name_filter = DEVICE, block_size = 64, name = "AudioSource")
+    #source = AudioSource.AudioSource(device_name_filter = DEVICE, block_size = 256, name = "AudioSource")
     norm = RunningNorm.RunningNorm()(source) # this is not a very good AGC but it is what I have. needs some minimum block size ig I forget what it was
-    f0Calc = F0Calculator.F0Calculator(128, 10, 16000, f0_min = F0_MIN, f0_max = F0_MAX, lp_cut = LP_CUTOFF_NORMALIZED, harmo_thresh = HARMO_THRESH, gain = PRE_GAIN_LINEAR)(norm)
+    f0Calc = F0Calculator.F0Calculator(256, 10, 16000, f0_min = F0_MIN, f0_max = F0_MAX, lp_cut = LP_CUTOFF_NORMALIZED, harmo_thresh = HARMO_THRESH, gain = PRE_GAIN_LINEAR)(norm)
     receiver = Receiver.Receiver()(f0Calc)
-    sink = PyAudioSink.PyAudioSink(orig_sample_rate = 16000, block_size = 64, stereo_channel = 'both')(source)
+    #sink = PyAudioSink.PyAudioSink(orig_sample_rate = 16000, block_size = 256, stereo_channel = 'both')(norm)
+    sink = RTMixerAudioSink.RTMixerAudioSink(sample_rate = 16000)(norm)
     source.start_processing()
 
     app = QApplication([])
