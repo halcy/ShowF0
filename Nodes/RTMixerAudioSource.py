@@ -12,7 +12,7 @@ RTMixer based low latency audio source for MS Windows
 from . import Node
 
 class RTMixerAudioSource(Node.Node):
-    def __init__(self, device_name_filter = None, sample_rate_out = 16000, block_size=1024, exclusive_mode = False, preamp = 1.0, name = "RTMixerAudioSource"):
+    def __init__(self, device_name_filter = None, sample_rate_out = 16000, block_size = 1024, exclusive_mode = False, name = "RTMixerAudioSource"):
         super(RTMixerAudioSource, self).__init__(has_inputs = False, name = name)
 
         # Parameters
@@ -20,17 +20,19 @@ class RTMixerAudioSource(Node.Node):
         self.device_name_filter = device_name_filter
         self.sample_rate = sample_rate_out
         self.block_size = block_size
-        self.preamp = preamp
 
         # Exclusive mode setting
-        self.exclusive_mode = None
-        if exclusive_mode:
-            self.exclusive_mode = sd.WasapiSettings(exclusive=True)
+        self.exclusive_mode = exclusive_mode
 
         # Wind-down signaling
         self.stop_process = multiprocessing.Value('b', True)
   
     def find_device_and_rate(self):
+        # Exclusive mode?
+        exclusive = None
+        if self.exclusive_mode:
+            exclusive = sd.WasapiSettings(exclusive=True)
+
         # Figure out WASAPI id
         wasapi_id = None
         wasapi_default_device = None
@@ -59,18 +61,18 @@ class RTMixerAudioSource(Node.Node):
                 device = device_id, 
                 channels = 1, 
                 dtype = 'float32', 
-                extra_settings = self.exclusive_mode, 
+                extra_settings = exclusive, 
                 samplerate = device_sample_rate
             )
         except:
             # Doesn't work, have to resample
             device_sample_rate = sd.query_devices(device_id)["default_samplerate"]
-        return device_id, device_sample_rate
+        return device_id, device_sample_rate, exclusive
     
     def audio_runner(self):
         """Thread for getting data from the microphone"""
         # Get device and rate
-        device, device_sample_rate = self.find_device_and_rate()
+        device, device_sample_rate, exclusive = self.find_device_and_rate()
         sample_multiplier = self.sample_rate / device_sample_rate
         
         # Open stream
@@ -81,10 +83,11 @@ class RTMixerAudioSource(Node.Node):
             blocksize = 0, 
             samplerate = device_sample_rate,
             latency = 0,
-            extra_settings = self.exclusive_mode
+            extra_settings = exclusive
         )
         assert stream.dtype == 'float32'
         assert stream.samplesize == 4
+        print("[Source] Latency: ", stream.latency, "+ buffer", round((self.block_size / self.sample_rate), 4))
 
         # Record
         buffer_in = rtmixer.RingBuffer(4, 2 ** math.ceil(math.log2(device_sample_rate)))
@@ -103,15 +106,15 @@ class RTMixerAudioSource(Node.Node):
     def processing_runner(self):
         """Thread for getting data into the handlers."""
         # Do we need resampling?
-        _, device_sample_rate = self.find_device_and_rate()
+        _, device_sample_rate, _ = self.find_device_and_rate()
         sample_multiplier = self.sample_rate / device_sample_rate
-        print("[Source] Resampling using sinc_fastest and factor", sample_multiplier)
+        print("[Source] Resampling using sinc_fastest and factor", round(sample_multiplier, 2))
         resampler = sr.Resampler('sinc_fastest', channels = 1)
 
         while self.stop_process.value == False:
             if self.frame_pipe_out.poll(1.0 / 1000.0):
                 samples = self.frame_pipe_out.recv()
-                samples = resampler.process(samples, sample_multiplier) # Consider moving this to audio thread
+                samples = resampler.process(samples, sample_multiplier) # Consider moving this to audio thread?
             else:
                 continue
             self.output_data(samples)

@@ -24,13 +24,11 @@ if __name__ == '__main__':
     #    print(p.get_device_info_by_index(i)["name"])
         
     window = None
-    source = RTMixerAudioSource.RTMixerAudioSource(device_name_filter = DEVICE, block_size = 64, name = "AudioSource")
-    #source = AudioSource.AudioSource(device_name_filter = DEVICE, block_size = 256, name = "AudioSource")
-    norm = RunningNorm.RunningNorm()(source) # this is not a very good AGC but it is what I have. needs some minimum block size ig I forget what it was
-    f0Calc = F0Calculator.F0Calculator(256, 10, 16000, f0_min = F0_MIN, f0_max = F0_MAX, lp_cut = LP_CUTOFF_NORMALIZED, harmo_thresh = HARMO_THRESH, gain = PRE_GAIN_LINEAR)(norm)
+    source = RTMixerAudioSource.RTMixerAudioSource(device_name_filter = DEVICE, block_size = 32, exclusive_mode = False, name = "AudioSource")
+    #norm = RunningNorm.RunningNorm()(source) # this is not a very good AGC but it is what I have right now (TODO just add literally anything sensible that doesn't distort so much). needs some minimum block size ig I forget what it was
+    f0Calc = F0Calculator.F0Calculator(256, 10, 16000, f0_min = F0_MIN, f0_max = F0_MAX, lp_cut = LP_CUTOFF_NORMALIZED, harmo_thresh = HARMO_THRESH, gain = PRE_GAIN_LINEAR)(source)
     receiver = Receiver.Receiver()(f0Calc)
-    #sink = PyAudioSink.PyAudioSink(orig_sample_rate = 16000, block_size = 256, stereo_channel = 'both')(norm)
-    sink = RTMixerAudioSink.RTMixerAudioSink(sample_rate = 16000)(norm)
+    sink = RTMixerAudioSink.RTMixerAudioSink(sample_rate = 16000, safety_factor = 0.02, exclusive_mode = True)(source)
     source.start_processing()
 
     app = QApplication([])
