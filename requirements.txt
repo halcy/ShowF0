@@ -4,3 +4,4 @@ pyaudio
 scipy
 pyqtgraph
 numpy
+rtmixer
