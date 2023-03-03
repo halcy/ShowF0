@@ -13,14 +13,15 @@ Not configurable or whatever, just blasts stereo audio out at 16khz the end.
 from . import Node
 
 class AudioSource(Node.Node):
-    def __init__(self, device_name_filter = "USB", name = "AudioSource"):
+    def __init__(self, device_name_filter = "USB", block_size=128, name = "AudioSource"):
         super(AudioSource, self).__init__(has_inputs = False, name = name)
         self.possible_rates = [16000, 32000, 48000, 96000, 128000]
         
         self.frame_pipe_out, self.frame_pipe_in = multiprocessing.Pipe(False)
         self.device_name_filter = device_name_filter
         self.sample_rate = None
-        
+        self.block_size = block_size
+
         # Wind-down value
         self.stop_process = multiprocessing.Value('b', True)
        
@@ -84,14 +85,14 @@ class AudioSource(Node.Node):
             channels = 1,
             rate = self.sample_rate, 
             input = True,
-            frames_per_buffer = 256,
+            frames_per_buffer = self.block_size,
             input_device_index = self.device_id,
         )
 
         # Record
         while self.stop_process.value == False:
-            data = stream.read(256, exception_on_overflow = False)
-            samples = np.frombuffer(data, dtype = 'int16').astype('float').reshape(256, 1)
+            data = stream.read(self.block_size, exception_on_overflow = False)
+            samples = np.frombuffer(data, dtype = 'int16').astype('float').reshape(self.block_size, 1)
             samples_res = resampler.process(samples, sample_multiplier)
             self.frame_pipe_in.send(samples_res)
         p.terminate()

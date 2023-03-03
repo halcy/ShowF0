@@ -25,11 +25,11 @@ if __name__ == '__main__':
         print(p.get_device_info_by_index(i)["name"])
         
     window = None
-    source = AudioSource.AudioSource(device_name_filter = DEVICE)
-    norm = RunningNorm.RunningNorm()(source) # this is not a very good AGC but it is what I have
+    source = AudioSource.AudioSource(device_name_filter = DEVICE, block_size = 64, name = "AudioSource")
+    norm = RunningNorm.RunningNorm()(source) # this is not a very good AGC but it is what I have. needs some minimum block size ig I forget what it was
     f0Calc = F0Calculator.F0Calculator(128, 10, 16000, f0_min = F0_MIN, f0_max = F0_MAX, lp_cut = LP_CUTOFF_NORMALIZED, harmo_thresh = HARMO_THRESH, gain = PRE_GAIN_LINEAR)(norm)
     receiver = Receiver.Receiver()(f0Calc)
-    sink = PyAudioSink.PyAudioSink(16000, 128, stereo_channel = 'both')(source)
+    sink = PyAudioSink.PyAudioSink(orig_sample_rate = 16000, block_size = 64, stereo_channel = 'both')(source)
     source.start_processing()
 
     app = QApplication([])
