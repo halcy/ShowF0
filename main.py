@@ -1,4 +1,4 @@
-from Nodes import F0Calculator, AudioSource, Receiver, RunningNorm
+from Nodes import F0Calculator, AudioSource, Receiver, RunningNorm, PyAudioSink
 import pyaudio
 import numpy as np
 from PyQt5.QtWidgets import *
@@ -6,7 +6,7 @@ from PyQt5.QtCore import QTimer
 from PlotWindow import PlotWindow
 
 # recording - device name
-DEVICE = "C510"
+DEVICE = "Microphone Array"
 
 # display 
 ROLL_LEN = 1000 # how many data points (10ms each) to show
@@ -29,6 +29,7 @@ if __name__ == '__main__':
     norm = RunningNorm.RunningNorm()(source) # this is not a very good AGC but it is what I have
     f0Calc = F0Calculator.F0Calculator(128, 10, 16000, f0_min = F0_MIN, f0_max = F0_MAX, lp_cut = LP_CUTOFF_NORMALIZED, harmo_thresh = HARMO_THRESH, gain = PRE_GAIN_LINEAR)(norm)
     receiver = Receiver.Receiver()(f0Calc)
+    sink = PyAudioSink.PyAudioSink(16000, 128, stereo_channel = 'both')(source)
     source.start_processing()
 
     app = QApplication([])
